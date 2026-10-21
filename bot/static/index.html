@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Arbitraje Stablecoins</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='%2314b8a6'/><path d='M9 13h11l-3-3M23 19H12l3 3' stroke='white' stroke-width='2.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <div class="logo" aria-hidden="true">
+      <svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="14"/><path d="M9 13h11l-3-3M23 19H12l3 3"/></svg>
+    </div>
+    <div>
+      <h1>Arbitraje de stablecoins</h1>
+      <p class="sub">Binance · cuenta demo · libros de órdenes en vivo</p>
+    </div>
+  </div>
+  <div class="chips">
+    <span class="chip" id="chip-market"><i></i><span>Mercado</span></span>
+    <span class="chip" id="chip-api"><i></i><span>Cuenta</span></span>
+    <span class="chip mode" id="chip-mode">Simulación</span>
+  </div>
+  <div class="actions">
+    <button class="icon-btn" id="theme-btn" title="Cambiar tema" aria-label="Cambiar tema">
+      <svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></svg>
+    </button>
+    <button class="run-btn" id="run-btn" disabled>
+      <span class="run-icon"></span><span id="run-label">Conectando…</span>
+    </button>
+  </div>
+</header>
+
+<div id="banner" class="banner hidden"></div>
+
+<main>
+  <section class="kpis">
+    <article class="kpi">
+      <h3>Valor de la cuenta</h3>
+      <div class="big" id="k-equity">—</div>
+      <p class="hint" id="k-equity-hint">USDT a precio medio</p>
+    </article>
+    <article class="kpi">
+      <h3>Resultado de la cuenta</h3>
+      <div class="big" id="k-pnl">—</div>
+      <p class="hint" id="k-pnl-hint">desde el primer registro</p>
+    </article>
+    <article class="kpi">
+      <h3>Cuenta en esta sesión</h3>
+      <div class="big" id="k-session">—</div>
+      <p class="hint" id="k-session-hint">el bot está parado</p>
+    </article>
+    <article class="kpi">
+      <h3>Trades de arbitraje</h3>
+      <div class="big" id="k-trades">—</div>
+      <p class="hint" id="k-trades-hint">en la cuenta demo</p>
+    </article>
+    <article class="kpi wide">
+      <h3>Mejor oportunidad ahora</h3>
+      <div class="opp">
+        <div class="big" id="k-best">—</div>
+        <div class="opp-route" id="k-best-route">Esperando datos del libro…</div>
+      </div>
+      <div class="meter" title="Distancia al umbral de ejecución"><div id="k-meter"></div><span id="k-meter-mark"></span></div>
+      <p class="hint" id="k-best-hint">umbral —</p>
+    </article>
+  </section>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab active" data-tab="market">Mercado</button>
+    <button class="tab" data-tab="routes">Rutas</button>
+    <button class="tab" data-tab="account">Cuenta</button>
+    <button class="tab" data-tab="trades">Trades <span class="badge" id="trades-badge"></span></button>
+    <button class="tab" data-tab="settings">Ajustes</button>
+    <button class="tab" data-tab="log">Registro</button>
+  </nav>
+
+  <!-- MERCADO -->
+  <section class="panel active" id="tab-market">
+    <div class="books" id="books"></div>
+    <div class="grid2">
+      <article class="card">
+        <header class="card-head">
+          <div>
+            <h2>Paridad de cada stablecoin frente a USDT</h2>
+            <p class="muted">Desviación del precio medio del libro respecto a 1 USDT (bps). En las fichas, el gap frente a la tasa implícita vía BTC, como en el estudio.</p>
+          </div>
+          <div class="seg" data-chart-range>
+            <button class="active" data-range="live">1 h</button>
+            <button data-range="day">24 h</button>
+          </div>
+        </header>
+        <div class="chart-box"><canvas id="gap-chart"></canvas></div>
+        <div class="gap-now" id="gap-now"></div>
+      </article>
+      <article class="card">
+        <header class="card-head">
+          <div>
+            <h2>Mejor ciclo: teórico vs ejecutable</h2>
+            <p class="muted">Teórico = precio medio + comisiones (equivale al close del estudio). Ejecutable = recorriendo el libro.</p>
+          </div>
+          <div class="seg" data-chart-range>
+            <button class="active" data-range="live">1 h</button>
+            <button data-range="day">24 h</button>
+          </div>
+        </header>
+        <div class="chart-box"><canvas id="best-chart"></canvas></div>
+      </article>
+    </div>
+    <article class="card" style="margin-top:14px">
+      <header class="card-head">
+        <div>
+          <h2>Stablecoins: cobertura y rutas</h2>
+          <p class="muted" id="coverage-sub">Mercados que Binance tiene para cada moneda y rutas de 3 o más patas en las que participa.</p>
+        </div>
+      </header>
+      <div class="table-wrap">
+        <table class="table" id="coverage-table">
+          <thead><tr><th>Moneda</th><th>Estado</th><th class="num">Rutas (3+ patas)</th><th class="num">Paridad vs USDT</th><th>Mercados en Binance</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </article>
+  </section>
+
+  <!-- RUTAS -->
+  <section class="panel" id="tab-routes">
+    <article class="card">
+      <header class="card-head">
+        <div>
+          <h2>Ciclos evaluados en vivo</h2>
+          <p class="muted" id="routes-sub">Cada ciclo se simula con el tamaño configurado contra los 20 niveles del libro.</p>
+        </div>
+        <div class="row">
+          <label class="select-wrap">Contiene
+            <select id="routes-asset"><option value="">cualquier moneda</option></select>
+          </label>
+          <label class="select-wrap">Patas
+            <select id="routes-legs"><option value="">todas</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select>
+          </label>
+          <label class="switch"><input type="checkbox" id="routes-only-sources" checked><span></span>Solo activos de origen activos</label>
+        </div>
+      </header>
+      <div class="table-wrap">
+        <table class="table" id="routes-table">
+          <thead><tr>
+            <th>Ruta</th><th>Origen</th><th class="num">Patas</th>
+            <th class="num" title="Precio medio y comisiones, como el estudio con close">Teórico (bps)</th>
+            <th class="num" title="Recorriendo el libro, con lotes mínimos y comisiones">Ejecutable (bps)</th>
+            <th class="num" title="Ejecutable − teórico: lo que cuesta cruzar el spread y la profundidad">Coste ejecución</th>
+            <th>Estado</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </article>
+    <article class="card explainer">
+      <h2>¿Por qué el ejecutable es peor que el teórico?</h2>
+      <p>En el estudio cada conversión se valora al <b>close</b> de la vela. En vivo no se puede operar al precio medio: comprar consume <b>asks</b> y vender consume <b>bids</b>, así que cada pata paga medio spread más el impacto de profundidad si el tamaño supera el primer nivel. Además las cantidades se redondean al <i>stepSize</i> del mercado (1 unidad en los pares estables, 0,00001 BTC) y el resto queda como saldo residual. El bot solo dispara cuando el valor <b>ejecutable</b>, que incluye ese residual valorado a precio medio, supera el umbral.</p>
+    </article>
+  </section>
+
+  <!-- CUENTA -->
+  <section class="panel" id="tab-account">
+    <div class="grid2 wide-left">
+      <article class="card">
+        <header class="card-head">
+          <div><h2>Evolución de la cuenta</h2><p class="muted">Valor total en USDT, una foto por minuto y tras cada trade.</p></div>
+          <a class="btn ghost" href="/api/export/equity.csv">Exportar CSV</a>
+        </header>
+        <div class="chart-box tall"><canvas id="equity-chart"></canvas></div>
+      </article>
+      <article class="card">
+        <header class="card-head">
+          <div><h2>Saldos</h2><p class="muted" id="bal-updated">—</p></div>
+          <button class="btn ghost" id="refresh-account">Actualizar</button>
+        </header>
+        <div id="balances"></div>
+        <dl class="stats" id="account-stats"></dl>
+      </article>
+    </div>
+  </section>
+
+  <!-- TRADES -->
+  <section class="panel" id="tab-trades">
+    <article class="card">
+      <header class="card-head">
+        <div><h2>Trades de arbitraje</h2><p class="muted">Pulsa una fila para ver cada pata: precio esperado vs real, comisiones y deslizamiento.</p></div>
+        <div class="row">
+          <div class="seg" id="trade-filter">
+            <button class="active" data-mode="live">Cuenta demo</button>
+            <button data-mode="paper">Simulados</button>
+            <button data-mode="">Todos</button>
+          </div>
+          <a class="btn ghost" href="/api/export/trades.csv">Exportar CSV</a>
+        </div>
+      </header>
+      <div class="trade-summary" id="trade-summary"></div>
+      <div class="table-wrap">
+        <table class="table" id="trades-table">
+          <thead><tr>
+            <th>Fecha</th><th>Tipo</th><th>Ruta</th><th class="num">Importe</th>
+            <th class="num">Esperado</th><th class="num">Realizado</th><th class="num">PnL (USDT)</th>
+            <th class="num">Duración</th><th>Estado</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="empty hidden" id="trades-empty">Aún no hay trades. Cuando el bot detecte un ciclo por encima del umbral aparecerá aquí.</p>
+    </article>
+  </section>
+
+  <!-- AJUSTES -->
+  <section class="panel" id="tab-settings">
+    <form class="card settings" id="settings-form">
+      <header class="card-head"><div><h2>Ajustes del bot</h2><p class="muted">Se guardan en <code>data/settings.json</code> y se aplican al momento.</p></div></header>
+      <fieldset class="mode-pick">
+        <legend>Modo de funcionamiento</legend>
+        <label class="mode-card">
+          <input type="radio" name="mode" value="paper">
+          <span><b>Simulación</b><small>Detecta oportunidades y simula la ejecución contra el libro. No envía órdenes.</small></span>
+        </label>
+        <label class="mode-card">
+          <input type="radio" name="mode" value="live">
+          <span><b>Órdenes en demo</b><small>Envía órdenes a mercado a tu cuenta demo de Binance (fondos ficticios).</small></span>
+        </label>
+      </fieldset>
+      <div class="fields">
+        <label class="field"><span>Tamaño por ciclo (USD)</span>
+          <input type="number" name="trade_size_usd" min="6" step="1">
+          <small>Importe que entra en cada ciclo. Mayor tamaño = más impacto en el libro.</small></label>
+        <label class="field"><span>Beneficio mínimo (bps)</span>
+          <input type="number" name="min_profit_bps" step="0.1">
+          <small>Neto ejecutable tras comisiones. 1 bps = 0,01 %.</small></label>
+        <label class="field"><span>Espera entre ciclos (s)</span>
+          <input type="number" name="cooldown_s" min="0.5" step="0.5">
+          <small>Evita disparar varias veces sobre la misma oportunidad.</small></label>
+        <label class="field"><span>Máx. ciclos por hora</span>
+          <input type="number" name="max_trades_per_hour" min="1" step="1"></label>
+        <label class="field"><span>Antigüedad máx. del libro (ms)</span>
+          <input type="number" name="max_book_age_ms" min="200" step="100">
+          <small>Si el stream lleva más tiempo sin datos, no se opera.</small></label>
+        <label class="field"><span>Pérdida máx. por sesión (%)</span>
+          <input type="number" name="max_session_loss_pct" min="0.01" step="0.1">
+          <small>El bot se detiene solo si la cuenta cae este porcentaje.</small></label>
+        <label class="field"><span>Fallos seguidos antes de parar</span>
+          <input type="number" name="max_consecutive_failures" min="1" step="1"></label>
+        <div class="field"><span>Activos de origen</span>
+          <div class="checks" id="sources-checks"></div>
+          <small>El ciclo empieza y termina en este activo. En modo demo necesita saldo.</small></div>
+        <label class="field"><span>Patas máximas por ciclo</span>
+          <input type="number" name="max_legs" min="2" max="5" step="1">
+          <small>Con más patas hay muchas más rutas, pero cada pata paga spread y comisión.</small></label>
+        <label class="field check-line"><input type="checkbox" name="auto_unwind">
+          <span>Deshacer automáticamente si falla una pata <small>Vuelve al activo de origen por el mercado directo.</small></span></label>
+        <div class="field wide"><span>Universo de monedas</span>
+          <div class="checks" id="assets-checks"></div>
+          <small>Monedas que el bot puede usar. Al guardar se buscan en Binance todos los pares activos entre ellas y se recalculan las rutas. Las tachadas no tienen hoy ningún mercado activo.</small></div>
+      </div>
+      <div class="form-foot">
+        <span class="form-msg" id="settings-msg"></span>
+        <button type="submit" class="btn primary">Guardar ajustes</button>
+      </div>
+    </form>
+    <article class="card">
+      <h2>Comisiones aplicadas</h2>
+      <p class="muted">Leídas de tu cuenta (<code>/api/v3/account/commission</code>, taker).</p>
+      <div class="fees" id="fees"></div>
+    </article>
+  </section>
+
+  <!-- REGISTRO -->
+  <section class="panel" id="tab-log">
+    <article class="card">
+      <header class="card-head"><div><h2>Registro de actividad</h2><p class="muted">Conexiones, cambios de ajustes, trades y errores.</p></div></header>
+      <ul class="log" id="log"></ul>
+    </article>
+  </section>
+</main>
+
+<footer class="foot">
+  <span id="foot-url"></span> · Datos actualizados cada segundo · <span id="foot-clock"></span>
+</footer>
+
+<div class="toast-zone" id="toasts"></div>
+<script src="/static/app.js"></script>
+</body>
+</html>

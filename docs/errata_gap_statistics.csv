@@ -1,0 +1,7 @@
+pair,version,hours,mean_abs_gap_bps,median_abs_gap_bps,max_abs_gap_bps,share_gt_10bps_%,share_gt_50bps_%
+USDC/USD,notebook (btc_a / btc_b),7528,6.38,4.59,74.78,19.34,0.2
+USDC/USD,corrected (btc_b / btc_a),7528,5.5,3.66,74.23,14.71,0.16
+USDT/USD,notebook (btc_a / btc_b),7528,12.4,10.6,83.25,52.52,0.33
+USDT/USD,corrected (btc_b / btc_a),7528,5.49,3.62,72.74,14.94,0.17
+USDC/USDT,notebook (btc_a / btc_b),55429,10.79,7.38,1171.42,37.93,1.39
+USDC/USDT,corrected (btc_b / btc_a),55429,1.4,0.85,115.45,0.55,0.01

@@ -1,0 +1,6 @@
+# Notebook and analysis scripts. Tested with Python 3.13, pandas 2.3, numpy 2.4, matplotlib 3.10.
+pandas>=2.2
+numpy>=1.26
+matplotlib>=3.8
+requests>=2.32
+jupyterlab>=4

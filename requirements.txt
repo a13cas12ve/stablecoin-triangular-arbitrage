@@ -1,0 +1,5 @@
+# Live bot + dashboard (Binance Spot Demo). Tested with Python 3.13.
+fastapi>=0.115
+uvicorn[standard]>=0.30
+websockets>=13
+requests>=2.32
